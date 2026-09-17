@@ -1,0 +1,49 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Java 21 and PostgreSQL integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build and test against PostgreSQL 17
+        run: ./mvnw -B -ntp verify
+
+  docker:
+    name: Docker Compose end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure local demo
+        run: cp .env.example .env
+      - name: Build and start all services
+        run: docker compose up --build --wait --wait-timeout 180
+      - name: Verify simulator, history and validation
+        run: python3 scripts/smoke_test.py
+      - name: Verify persistence after backend restart
+        run: |
+          docker compose stop simulator
+          docker compose restart backend
+          docker compose up -d --wait --wait-timeout 90 backend
+          python3 scripts/smoke_test.py --persisted
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Clean up
+        if: always()
+        run: docker compose down -v

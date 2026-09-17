@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: connected-car-backend
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/connected_car}
+    username: ${POSTGRES_USER:connected_car}
+    password: ${POSTGRES_PASSWORD:local_demo_change_me}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  mvc:
+    problemdetails:
+      enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+app:
+  offline-after: ${VEHICLE_OFFLINE_AFTER:20s}
